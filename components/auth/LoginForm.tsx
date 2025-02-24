@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { FirebaseError } from 'firebase/app';
@@ -10,6 +11,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,10 +19,12 @@ export default function LoginForm() {
     try {
       setError('');
       setLoading(true);
+      console.log('Attempting to sign in...');
       await signIn(email, password);
-      // Force a hard navigation to the dashboard
-      window.location.href = '/dashboard';
+      console.log('Sign in successful, redirecting...');
+      router.replace('/dashboard');
     } catch (err: unknown) {
+      console.error('Sign in error:', err);
       const errorMessage =
         err instanceof FirebaseError
           ? err.message

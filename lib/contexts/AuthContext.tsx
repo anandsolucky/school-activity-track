@@ -39,7 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Setting up auth state listener...');
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed:', user ? 'User logged in' : 'No user');
       setUser(user);
       setLoading(false);
     });
@@ -47,12 +49,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return unsubscribe;
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log('Signing in with email...');
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Sign in successful:', result.user.email);
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
-  const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+  const signUp = async (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
