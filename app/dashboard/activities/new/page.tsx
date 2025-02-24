@@ -131,6 +131,31 @@ export default function NewActivityPage() {
       const selectedClassData = classes.find((c) => c.id === selectedClass);
       if (!selectedClassData) throw new Error('Class not found');
 
+      // Check if an activity already exists for this class and date
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existingActivityQuery = query(
+        collection(db, 'activities'),
+        where('classId', '==', selectedClass),
+        where('date', '>=', startOfDay.toISOString()),
+        where('date', '<=', endOfDay.toISOString())
+      );
+
+      const existingActivitySnapshot = await getDocs(existingActivityQuery);
+      if (!existingActivitySnapshot.empty) {
+        toast.error(
+          'An activity already exists for this class on the selected date',
+          {
+            description: 'Please choose a different date or class',
+          }
+        );
+        setLoading(false);
+        return;
+      }
+
       const activityData = {
         title: title.trim(),
         date: date.toISOString(),
