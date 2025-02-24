@@ -203,11 +203,33 @@ function ClassDetailsContent({ classId }: { classId: string }) {
       </header>
 
       {/* Main Content */}
-      <div className="p-4 max-w-3xl mx-auto space-y-4">
+      <div className="p-4 max-w-3xl mx-auto space-y-6">
+        {/* Class Stats */}
+        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white/80">
+                  Total Students
+                </p>
+                <p className="text-2xl font-bold">{students.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Students Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-slate-900">Students</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Students</h2>
+              <p className="text-sm text-slate-500">
+                Manage your class students
+              </p>
+            </div>
             <Button
               onClick={() =>
                 router.push(`/dashboard/classes/${classId}/students/add`)
@@ -246,109 +268,115 @@ function ClassDetailsContent({ classId }: { classId: string }) {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-slate-900">
-                  Student List ({students.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/2">
-                            Name
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/3">
-                            Roll Number
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-[100px]">
-                            <span className="sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-slate-200">
-                        {students.map((student) => (
-                          <tr key={student.id} className="group">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                              {student.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                              {student.rollNumber || '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 -my-2"
-                                onClick={() =>
-                                  router.push(
-                                    `/dashboard/classes/${classId}/students/${student.id}/edit`
-                                  )
-                                }
-                              >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Edit student</span>
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            <Card className="border-slate-200 overflow-hidden">
+              <div className="border-b border-slate-100 bg-slate-50/50">
+                <div className="grid grid-cols-12 px-6 py-3 text-sm font-medium text-slate-500">
+                  <div className="col-span-5">Name</div>
+                  <div className="col-span-4">Roll Number</div>
+                  <div className="col-span-3 text-right">Actions</div>
                 </div>
+              </div>
+              <CardContent className="p-0">
+                {students.map((student, index) => (
+                  <div
+                    key={student.id}
+                    className={`grid grid-cols-12 px-6 py-4 items-center group hover:bg-slate-50 transition-colors ${
+                      index !== students.length - 1
+                        ? 'border-b border-slate-100'
+                        : ''
+                    }`}
+                  >
+                    <div className="col-span-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-medium text-sm">
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">
+                            {student.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-4">
+                      <p className="text-sm text-slate-600">
+                        {student.rollNumber || '-'}
+                      </p>
+                    </div>
+                    <div className="col-span-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/classes/${classId}/students/${student.id}/edit`
+                          )
+                        }
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="fixed bottom-20 inset-x-0 p-4 bg-white border-t border-slate-200">
-        <div className="max-w-3xl mx-auto flex gap-4">
-          <Button
-            variant="outline"
-            size="lg"
-            className="flex-1"
-            onClick={() => router.push(`/dashboard/classes/${classId}/edit`)}
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Class
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+        {/* Class Actions */}
+        <Card className="mt-6 border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Class Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 size="lg"
-                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="w-full border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                onClick={() =>
+                  router.push(`/dashboard/classes/${classId}/edit`)
+                }
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Class
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Class
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Class</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this class? This action will
-                  also delete all students and activities associated with this
-                  class. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Class
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Class</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this class? This action
+                      will also delete all students and activities associated
+                      with this class. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -85,49 +85,92 @@ export default function ClassesPage() {
         {classes.map((classItem) => (
           <Card
             key={classItem.id}
-            className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
+            className="overflow-hidden hover:shadow-md cursor-pointer border-slate-200 transition-all duration-200 group"
             onClick={() => router.push(`/dashboard/classes/${classItem.id}`)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div>
-                <CardTitle className="text-lg font-bold text-slate-900">
-                  {classItem.name}
-                </CardTitle>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-sm text-slate-600">
-                <Users className="mr-2 h-4 w-4" />
-                {classItem.studentCount} students
-              </div>
-            </CardContent>
+            <div className="relative">
+              {/* Class Status Bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+
+              <CardHeader className="space-y-0 pb-2 pt-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-50 p-2 rounded-lg">
+                      <GraduationCap className="h-5 w-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                        {classItem.name}
+                      </CardTitle>
+                      <p className="text-sm text-slate-500 flex items-center gap-2">
+                        Created{' '}
+                        {new Date(classItem.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-4">
+                    {/* Student Count */}
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">
+                        {classItem.studentCount} Students
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* View Details */}
+                  <div className="flex items-center text-sm text-indigo-600 font-medium">
+                    View Details
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </div>
+                </div>
+              </CardContent>
+            </div>
           </Card>
         ))}
 
         {classes.length === 0 && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8 text-slate-400" />
-            </div>
-            <h3 className="text-sm font-medium text-slate-900 mb-1">
-              No Classes Yet
-            </h3>
-            <p className="text-sm text-slate-500">
-              Create your first class to get started
-            </p>
-          </div>
+          <Card className="border-slate-200">
+            <CardContent className="py-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-indigo-500" />
+                </div>
+                <h3 className="text-sm font-medium text-slate-900 mb-1">
+                  No Classes Yet
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Create your first class to get started
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/classes/new')}
+                  className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Class
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 
       {/* Floating Action Button */}
       <Button
         size="lg"
-        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors"
+        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center gap-2 px-6"
         onClick={() => router.push('/dashboard/classes/new')}
       >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Class
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-5 w-5" />
+          <span className="font-medium">Add Class</span>
+        </div>
       </Button>
     </div>
   );

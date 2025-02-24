@@ -162,36 +162,80 @@ export default function DashboardPage() {
               todayActivities.map((activity) => (
                 <Card
                   key={activity.id}
-                  className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
+                  className="overflow-hidden hover:shadow-md cursor-pointer border-slate-200 transition-all duration-200 group"
                   onClick={() =>
                     router.push(`/dashboard/activities/${activity.id}`)
                   }
                 >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-lg font-bold text-slate-900">
-                      {activity.title}
-                    </CardTitle>
-                    <p className="text-sm text-slate-500">
-                      {new Date(activity.date).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-600">
-                        {activity.className}
-                      </p>
-                      <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100">
-                        <span className="text-xs font-medium text-indigo-600">
-                          {activity.students.filter((s) => s.isPresent).length}
-                          <span className="text-indigo-300 mx-1">/</span>
-                          {activity.students.length}
-                        </span>
+                  <div className="relative">
+                    {/* Activity Status Bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+
+                    <CardHeader className="space-y-0 pb-2 pt-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-indigo-50 p-2 rounded-lg">
+                            <CalendarIcon className="h-5 w-5 text-indigo-500" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {activity.title}
+                            </CardTitle>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {activity.className}
+                              <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
+                              {new Date(activity.date).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-4">
+                          {/* Present Students */}
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-sm font-medium text-slate-700">
+                              {
+                                activity.students.filter((s) => s.isPresent)
+                                  .length
+                              }{' '}
+                              Present
+                            </span>
+                          </div>
+                          {/* Absent Students */}
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                            <span className="text-sm font-medium text-slate-700">
+                              {
+                                activity.students.filter((s) => !s.isPresent)
+                                  .length
+                              }{' '}
+                              Absent
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Attendance Percentage */}
+                        <div className="bg-slate-50 px-3 py-1 rounded-full">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {Math.round(
+                              (activity.students.filter((s) => s.isPresent)
+                                .length /
+                                activity.students.length) *
+                                100
+                            )}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </div>
                 </Card>
               ))
             )}
@@ -246,39 +290,83 @@ export default function DashboardPage() {
                 pastActivities.map((activity) => (
                   <Card
                     key={activity.id}
-                    className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
+                    className="overflow-hidden hover:shadow-md cursor-pointer border-slate-200 transition-all duration-200 group"
                     onClick={() =>
                       router.push(`/dashboard/activities/${activity.id}`)
                     }
                   >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-lg font-bold text-slate-900">
-                        {activity.title}
-                      </CardTitle>
-                      <p className="text-sm text-slate-500">
-                        {new Date(activity.date).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-slate-600">
-                          {activity.className}
-                        </p>
-                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100">
-                          <span className="text-xs font-medium text-indigo-600">
-                            {
-                              activity.students.filter((s) => s.isPresent)
-                                .length
-                            }
-                            <span className="text-indigo-300 mx-1">/</span>
-                            {activity.students.length}
-                          </span>
+                    <div className="relative">
+                      {/* Activity Status Bar */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+
+                      <CardHeader className="space-y-0 pb-2 pt-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-indigo-50 p-2 rounded-lg">
+                              <CalendarIcon className="h-5 w-5 text-indigo-500" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                {activity.title}
+                              </CardTitle>
+                              <p className="text-sm text-slate-500 flex items-center gap-2">
+                                {activity.className}
+                                <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
+                                {new Date(activity.date).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }
+                                )}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
+                      </CardHeader>
+
+                      <CardContent>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex items-center gap-4">
+                            {/* Present Students */}
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <span className="text-sm font-medium text-slate-700">
+                                {
+                                  activity.students.filter((s) => s.isPresent)
+                                    .length
+                                }{' '}
+                                Present
+                              </span>
+                            </div>
+                            {/* Absent Students */}
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span className="text-sm font-medium text-slate-700">
+                                {
+                                  activity.students.filter((s) => !s.isPresent)
+                                    .length
+                                }{' '}
+                                Absent
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Attendance Percentage */}
+                          <div className="bg-slate-50 px-3 py-1 rounded-full">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {Math.round(
+                                (activity.students.filter((s) => s.isPresent)
+                                  .length /
+                                  activity.students.length) *
+                                  100
+                              )}
+                              %
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </div>
                   </Card>
                 ))
               )
@@ -303,10 +391,13 @@ export default function DashboardPage() {
       {/* Floating Action Button */}
       <Button
         size="lg"
-        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors"
+        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center gap-2 px-6"
         onClick={() => router.push('/dashboard/activities/new')}
       >
-        <Plus className="h-5 w-5" />
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="h-5 w-5" />
+          <span className="font-medium">Log Activity</span>
+        </div>
       </Button>
     </main>
   );
