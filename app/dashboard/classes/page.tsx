@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -57,6 +56,14 @@ export default function ClassesPage() {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px] text-red-500">
+        {error}
       </div>
     );
   }

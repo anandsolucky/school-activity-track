@@ -15,23 +15,21 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  ChevronLeft,
-  Pencil,
-  UserPlus,
-  Trash2,
-  Users,
-  MoreVertical,
-} from 'lucide-react';
+import { ChevronLeft, Pencil, UserPlus, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Student {
   id: string;
@@ -200,30 +198,6 @@ function ClassDetailsContent({ classId }: { classId: string }) {
                 </p>
               )}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() =>
-                    router.push(`/dashboard/classes/${classId}/edit`)
-                  }
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit Class
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Class
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -290,16 +264,34 @@ function ClassDetailsContent({ classId }: { classId: string }) {
                           <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Roll Number
                           </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
+                            <span className="sr-only">Actions</span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-200">
                         {students.map((student) => (
-                          <tr key={student.id}>
+                          <tr key={student.id} className="group">
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                               {student.name}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                               {student.rollNumber || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 -my-2"
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/classes/${classId}/students/${student.id}/edit`
+                                  )
+                                }
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit student</span>
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -310,6 +302,52 @@ function ClassDetailsContent({ classId }: { classId: string }) {
               </CardContent>
             </Card>
           )}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="fixed bottom-20 inset-x-0 p-4 bg-white border-t border-slate-200">
+        <div className="max-w-3xl mx-auto flex gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            onClick={() => router.push(`/dashboard/classes/${classId}/edit`)}
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit Class
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Class
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Class</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this class? This action will
+                  also delete all students and activities associated with this
+                  class. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

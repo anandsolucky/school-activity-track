@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +19,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { Spinner } from '@/components/ui/Spinner';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -30,8 +34,18 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export default function NewClassPage() {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+function EditClassContent({ classId }: { classId: string }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,20 +55,78 @@ export default function NewClassPage() {
     },
   });
 
+  useEffect(() => {
+    async function fetchClassDetails() {
+      if (!user) return;
+      try {
+        const classDoc = await getDoc(doc(db, 'classes', classId));
+        if (!classDoc.exists()) {
+          setError('Class not found');
+          return;
+        }
+
+        const classData = classDoc.data();
+        if (classData.teacherId !== user.uid) {
+          setError('You do not have permission to edit this class');
+          return;
+        }
+
+        form.reset({
+          name: classData.name,
+          subject: classData.subject,
+          description: classData.description || '',
+        });
+      } catch (err) {
+        console.error('Error fetching class:', err);
+        setError('Failed to load class details');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchClassDetails();
+  }, [classId, user, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log('Creating class with values:', values);
-      // TODO: Implement class creation with Firebase
-      toast.success('Class created successfully', {
-        description: 'You can now add students to this class.',
+      await updateDoc(doc(db, 'classes', classId), {
+        name: values.name,
+        subject: values.subject,
+        description: values.description || null,
       });
-      router.push('/dashboard/classes');
-    } catch {
-      toast.error('Error creating class', {
-        description: 'Please try again.',
-      });
+
+      toast.success('Class updated successfully');
+      router.push(`/dashboard/classes/${classId}`);
+    } catch (err) {
+      console.error('Error updating class:', err);
+      toast.error('Failed to update class');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center">
+        <div className="bg-red-50 text-red-500 p-4 rounded-md mb-4">
+          {error}
+        </div>
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="text-blue-600 hover:text-blue-500"
+        >
+          Go Back
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -69,7 +141,7 @@ export default function NewClassPage() {
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-medium text-slate-900">New Class</h1>
+          <h1 className="text-lg font-medium text-slate-900">Edit Class</h1>
         </div>
       </header>
 
@@ -78,7 +150,7 @@ export default function NewClassPage() {
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <p className="text-sm text-slate-500">
-              Enter the details for your new class
+              Update the details for your class
             </p>
           </CardHeader>
           <CardContent>
@@ -141,13 +213,23 @@ export default function NewClassPage() {
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  className="w-full bg-indigo-500 hover:bg-indigo-600"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting ? 'Creating...' : 'Create Class'}
-                </Button>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => router.back()}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-indigo-500 hover:bg-indigo-600"
+                    disabled={form.formState.isSubmitting}
+                  >
+                    {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>
@@ -155,4 +237,8 @@ export default function NewClassPage() {
       </div>
     </div>
   );
+}
+
+export default function EditClassPage({ params }: PageProps) {
+  return <EditClassContent classId={params.id} />;
 }

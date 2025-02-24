@@ -19,7 +19,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
 
   if (loading) {
