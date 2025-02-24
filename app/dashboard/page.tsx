@@ -26,17 +26,11 @@ interface Activity {
   classId: string;
 }
 
-interface Class {
-  id: string;
-  name: string;
-  studentCount: number;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [todayClasses, setTodayClasses] = useState<Class[]>([]);
+  const [todayActivities, setTodayActivities] = useState<Activity[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
@@ -44,32 +38,42 @@ export default function DashboardPage() {
       if (!user) return;
 
       try {
-        // Fetch today's classes
-        const classesQuery = query(
-          collection(db, 'classes'),
-          where('teacherId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const classesSnapshot = await getDocs(classesQuery);
-        const classesData = classesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Class[];
-        setTodayClasses(classesData);
+        // Get today's date range
+        const today = new Date();
+        const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+        const todayEnd = new Date(
+          today.setHours(23, 59, 59, 999)
+        ).toISOString();
 
-        // Fetch recent activities
-        const activitiesQuery = query(
+        // Fetch today's activities
+        const todayActivitiesQuery = query(
           collection(db, 'activities'),
           where('teacherId', '==', user.uid),
-          orderBy('date', 'desc'),
-          limit(5)
+          where('date', '>=', todayStart),
+          where('date', '<=', todayEnd),
+          orderBy('date', 'desc')
         );
-        const activitiesSnapshot = await getDocs(activitiesQuery);
-        const activitiesData = activitiesSnapshot.docs.map((doc) => ({
+        const todaySnapshot = await getDocs(todayActivitiesQuery);
+        const todayData = todaySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Activity[];
-        setRecentActivities(activitiesData);
+        setTodayActivities(todayData);
+
+        // Fetch recent activities (excluding today)
+        const recentActivitiesQuery = query(
+          collection(db, 'activities'),
+          where('teacherId', '==', user.uid),
+          where('date', '<', todayStart),
+          orderBy('date', 'desc'),
+          limit(5)
+        );
+        const recentSnapshot = await getDocs(recentActivitiesQuery);
+        const recentData = recentSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Activity[];
+        setRecentActivities(recentData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -106,7 +110,7 @@ export default function DashboardPage() {
               value="today"
               className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
             >
-              Today&apos;s Classes
+              Today&apos;s Activities
             </TabsTrigger>
             <TabsTrigger
               value="recent"
@@ -117,44 +121,50 @@ export default function DashboardPage() {
           </TabsList>
 
           <TabsContent value="today" className="space-y-4">
-            {todayClasses.length === 0 ? (
+            {todayActivities.length === 0 ? (
               <Card className="border-slate-200">
                 <CardContent className="py-8">
                   <div className="text-center">
                     <h3 className="text-sm font-medium text-slate-900 mb-1">
-                      No Classes Yet
+                      No Activities Today
                     </h3>
                     <p className="text-sm text-slate-500 mb-4">
-                      Start by creating your first class
+                      Start by creating your first activity for today
                     </p>
                     <Button
                       variant="outline"
-                      onClick={() => router.push('/dashboard/classes/new')}
+                      onClick={() => router.push('/dashboard/activities/new')}
                       className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Class
+                      Create Activity
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              todayClasses.map((classItem) => (
+              todayActivities.map((activity) => (
                 <Card
-                  key={classItem.id}
+                  key={activity.id}
                   className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
                   onClick={() =>
-                    router.push(`/dashboard/classes/${classItem.id}`)
+                    router.push(`/dashboard/activities/${activity.id}`)
                   }
                 >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-lg font-bold text-slate-900">
-                      {classItem.name}
+                      {activity.title}
                     </CardTitle>
+                    <p className="text-sm text-slate-500">
+                      {new Date(activity.date).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-slate-600">
-                      {classItem.studentCount} students
+                      {activity.className}
                     </p>
                   </CardContent>
                 </Card>
@@ -168,10 +178,10 @@ export default function DashboardPage() {
                 <CardContent className="py-8">
                   <div className="text-center">
                     <h3 className="text-sm font-medium text-slate-900 mb-1">
-                      No Activities Yet
+                      No Past Activities
                     </h3>
                     <p className="text-sm text-slate-500 mb-4">
-                      Start by creating your first activity
+                      Activities you create will appear here
                     </p>
                     <Button
                       variant="outline"
