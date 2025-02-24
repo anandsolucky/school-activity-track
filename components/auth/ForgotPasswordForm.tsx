@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { FirebaseError } from 'firebase/app';
 
@@ -67,12 +68,12 @@ export default function ForgotPasswordForm() {
       </div>
 
       <div className="text-center">
-        <a
+        <Link
           href="/login"
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           Back to login
-        </a>
+        </Link>
       </div>
     </form>
   );
