@@ -17,28 +17,31 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && isOwner(teacherId);
     }
 
-    // Classes collection
+    // Classes collection - simplified rules
     match /classes/{classId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.teacherId);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.teacherId);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.teacherId);
+      allow read, write: if isAuthenticated() && (
+        resource == null || 
+        resource.data.teacherId == request.auth.uid ||
+        request.resource.data.teacherId == request.auth.uid
+      );
     }
 
-    // Students collection
+    // Students collection - simplified rules
     match /students/{studentId} {
-      allow read: if isAuthenticated() && exists(/databases/$(database)/documents/classes/$(resource.data.classId)) 
-        && get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == request.auth.uid;
-      allow create: if isAuthenticated() && exists(/databases/$(database)/documents/classes/$(request.resource.data.classId)) 
-        && get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.teacherId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && exists(/databases/$(database)/documents/classes/$(resource.data.classId)) 
-        && get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == request.auth.uid;
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == request.auth.uid ||
+        get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.teacherId == request.auth.uid
+      );
     }
 
-    // Activities collection
+    // Activities collection - simplified rules
     match /activities/{activityId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.teacherId);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.teacherId);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.teacherId);
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.teacherId == request.auth.uid ||
+        request.resource.data.teacherId == request.auth.uid
+      );
     }
   }
 } 
