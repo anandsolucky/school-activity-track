@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { FirebaseError } from 'firebase/app';
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -17,8 +18,10 @@ export default function ForgotPasswordForm() {
       setLoading(true);
       await resetPassword(email);
       setMessage('Check your inbox for password reset instructions');
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof FirebaseError ? err.message : 'Failed to reset password';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

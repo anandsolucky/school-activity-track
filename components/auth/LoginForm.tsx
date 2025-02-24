@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -17,8 +18,12 @@ export default function LoginForm() {
       setLoading(true);
       await signIn(email, password);
       router.push('/dashboard');
-    } catch (err) {
-      setError('Failed to sign in. Please check your credentials.');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof FirebaseError
+          ? err.message
+          : 'Failed to sign in. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

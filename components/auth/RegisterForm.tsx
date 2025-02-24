@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { FirebaseError } from 'firebase/app';
 
 export default function RegisterForm() {
   const [email, setEmail] = useState('');
@@ -34,8 +35,12 @@ export default function RegisterForm() {
       });
 
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create an account');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof FirebaseError
+          ? err.message
+          : 'Failed to create an account';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
