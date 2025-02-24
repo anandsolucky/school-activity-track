@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, LayoutDashboard } from 'lucide-react';
+import { Plus, LayoutDashboard, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit,
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Spinner } from '@/components/ui/Spinner';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Activity {
   id: string;
@@ -31,7 +31,8 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [todayActivities, setTodayActivities] = useState<Activity[]>([]);
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [pastActivities, setPastActivities] = useState<Activity[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -60,20 +61,31 @@ export default function DashboardPage() {
         })) as Activity[];
         setTodayActivities(todayData);
 
-        // Fetch recent activities (excluding today)
-        const recentActivitiesQuery = query(
-          collection(db, 'activities'),
-          where('teacherId', '==', user.uid),
-          where('date', '<', todayStart),
-          orderBy('date', 'desc'),
-          limit(5)
-        );
-        const recentSnapshot = await getDocs(recentActivitiesQuery);
-        const recentData = recentSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Activity[];
-        setRecentActivities(recentData);
+        // If a date is selected, fetch activities for that date
+        if (selectedDate) {
+          const selectedStart = new Date(
+            selectedDate.setHours(0, 0, 0, 0)
+          ).toISOString();
+          const selectedEnd = new Date(
+            selectedDate.setHours(23, 59, 59, 999)
+          ).toISOString();
+
+          const pastActivitiesQuery = query(
+            collection(db, 'activities'),
+            where('teacherId', '==', user.uid),
+            where('date', '>=', selectedStart),
+            where('date', '<=', selectedEnd),
+            orderBy('date', 'desc')
+          );
+          const pastSnapshot = await getDocs(pastActivitiesQuery);
+          const pastData = pastSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Activity[];
+          setPastActivities(pastData);
+        } else {
+          setPastActivities([]);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -82,7 +94,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData();
-  }, [user]);
+  }, [user, selectedDate]);
 
   if (loading) {
     return (
@@ -113,10 +125,10 @@ export default function DashboardPage() {
               Today&apos;s Activities
             </TabsTrigger>
             <TabsTrigger
-              value="recent"
+              value="past"
               className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
             >
-              Recent Activities
+              Past Activities
             </TabsTrigger>
           </TabsList>
 
@@ -172,52 +184,92 @@ export default function DashboardPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="recent" className="space-y-4">
-            {recentActivities.length === 0 ? (
+          <TabsContent value="past" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Date</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate
+                        ? format(selectedDate, 'PPP')
+                        : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </CardContent>
+            </Card>
+
+            {selectedDate ? (
+              pastActivities.length === 0 ? (
+                <Card className="border-slate-200">
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <h3 className="text-sm font-medium text-slate-900 mb-1">
+                        No Activities Found
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-4">
+                        No activities were recorded on{' '}
+                        {format(selectedDate, 'PPP')}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                pastActivities.map((activity) => (
+                  <Card
+                    key={activity.id}
+                    className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
+                    onClick={() =>
+                      router.push(`/dashboard/activities/${activity.id}`)
+                    }
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-lg font-bold text-slate-900">
+                        {activity.title}
+                      </CardTitle>
+                      <p className="text-sm text-slate-500">
+                        {new Date(activity.date).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-slate-600">
+                        {activity.className}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))
+              )
+            ) : (
               <Card className="border-slate-200">
                 <CardContent className="py-8">
                   <div className="text-center">
                     <h3 className="text-sm font-medium text-slate-900 mb-1">
-                      No Past Activities
+                      Select a Date
                     </h3>
-                    <p className="text-sm text-slate-500 mb-4">
-                      Activities you create will appear here
+                    <p className="text-sm text-slate-500">
+                      Choose a date to view past activities
                     </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push('/dashboard/activities/new')}
-                      className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Activity
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              recentActivities.map((activity) => (
-                <Card
-                  key={activity.id}
-                  className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
-                  onClick={() =>
-                    router.push(`/dashboard/activities/${activity.id}`)
-                  }
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-lg font-bold text-slate-900">
-                      {activity.title}
-                    </CardTitle>
-                    <p className="text-sm text-slate-500">
-                      {new Date(activity.date).toLocaleDateString()}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600">
-                      {activity.className}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))
             )}
           </TabsContent>
         </Tabs>
