@@ -50,6 +50,9 @@ export default function ClassDetailPage({ params }: PageProps) {
   const [editedDescription, setEditedDescription] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingStudents, setIsDeletingStudents] = useState(false);
+  const [showDeleteStudentsConfirm, setShowDeleteStudentsConfirm] =
+    useState(false);
 
   useEffect(() => {
     async function fetchClassDetails() {
@@ -167,6 +170,44 @@ export default function ClassDetailPage({ params }: PageProps) {
       console.error('Error deleting class:', err);
       setError('Failed to delete class');
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteAllStudents = async () => {
+    if (!showDeleteStudentsConfirm) {
+      setShowDeleteStudentsConfirm(true);
+      return;
+    }
+
+    try {
+      setIsDeletingStudents(true);
+      setError('');
+
+      // Delete all students in the class
+      const studentsQuery = query(
+        collection(db, 'students'),
+        where('classId', '==', classId)
+      );
+      const studentsSnapshot = await getDocs(studentsQuery);
+      const deleteStudentsPromises = studentsSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(deleteStudentsPromises);
+
+      // Update class student count
+      await updateDoc(doc(db, 'classes', classId), {
+        studentCount: 0,
+      });
+
+      // Update local state
+      setStudents([]);
+      setClassDetails((prev) => (prev ? { ...prev, studentCount: 0 } : null));
+      setShowDeleteStudentsConfirm(false);
+    } catch (err) {
+      console.error('Error deleting students:', err);
+      setError('Failed to delete students');
+    } finally {
+      setIsDeletingStudents(false);
     }
   };
 
@@ -337,7 +378,44 @@ export default function ClassDetailPage({ params }: PageProps) {
               A list of all students in this class.
             </p>
           </div>
+          {students.length > 0 && (
+            <div className="mt-4 sm:ml-16 sm:mt-0">
+              <button
+                type="button"
+                onClick={handleDeleteAllStudents}
+                disabled={isDeletingStudents}
+                className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
+              >
+                {isDeletingStudents ? 'Deleting...' : 'Delete All Students'}
+              </button>
+            </div>
+          )}
         </div>
+
+        {showDeleteStudentsConfirm && !isDeletingStudents && (
+          <div className="mt-4 bg-red-50 p-4 rounded-md">
+            <p className="text-sm text-red-700">
+              Are you sure you want to delete all students from this class? This
+              action cannot be undone.
+            </p>
+            <div className="mt-4 flex space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteStudentsConfirm(false)}
+                className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAllStudents}
+                className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              >
+                Yes, Delete All Students
+              </button>
+            </div>
+          </div>
+        )}
 
         {students.length === 0 ? (
           <div className="text-center bg-white rounded-lg shadow-sm p-12 mt-6">
