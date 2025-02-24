@@ -1,22 +1,21 @@
 import React from 'react';
 import LoginForm from '@/components/auth/LoginForm';
+import { School } from 'lucide-react';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <a
-              href="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              create a new account
-            </a>
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Logo and Title Section */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="p-3 bg-blue-100 rounded-full">
+            <School className="w-12 h-12 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            School Activity Track
+          </h1>
+          <p className="text-sm text-gray-500 text-center">
+            Manage your classes and track student activities efficiently
           </p>
         </div>
         <LoginForm />

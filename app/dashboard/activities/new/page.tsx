@@ -1,375 +1,321 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { Spinner } from '@/components/ui/Spinner';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Class {
   id: string;
   name: string;
 }
 
-interface StudentActivity {
-  studentId: string;
+interface ActivityStudent {
+  id: string;
   name: string;
   rollNumber?: string;
-  attendance: boolean;
-  classwork: boolean;
-  remarks: string;
+  isPresent: boolean;
+  remarks?: string;
 }
 
 export default function NewActivityPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [students, setStudents] = useState<StudentActivity[]>([]);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [lessonTitle, setLessonTitle] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState<Date>(new Date());
+  const [students, setStudents] = useState<ActivityStudent[]>([]);
 
-  // Fetch teacher's classes
   useEffect(() => {
     async function fetchClasses() {
       if (!user) return;
-
       try {
         const classesQuery = query(
           collection(db, 'classes'),
           where('teacherId', '==', user.uid)
         );
-
-        const querySnapshot = await getDocs(classesQuery);
-        const fetchedClasses = querySnapshot.docs.map((doc) => ({
+        const snapshot = await getDocs(classesQuery);
+        const classesData = snapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().name,
         }));
-
-        setClasses(fetchedClasses);
-        setLoading(false);
+        setClasses(classesData);
       } catch (err) {
         console.error('Error fetching classes:', err);
-        setError('Failed to load classes');
-        setLoading(false);
+        toast.error('Failed to load classes');
       }
     }
 
     fetchClasses();
   }, [user]);
 
-  // Fetch students when a class is selected
-  useEffect(() => {
-    async function fetchStudents() {
-      if (!selectedClass) {
-        setStudents([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const studentsQuery = query(
-          collection(db, 'students'),
-          where('classId', '==', selectedClass)
-        );
-
-        const querySnapshot = await getDocs(studentsQuery);
-        const fetchedStudents = querySnapshot.docs.map((doc) => ({
-          studentId: doc.id,
-          name: doc.data().name,
-          rollNumber: doc.data().rollNumber,
-          attendance: true, // Default to present
-          classwork: false, // Default to not completed
-          remarks: '',
-        }));
-
-        setStudents(fetchedStudents);
-      } catch (err) {
-        console.error('Error fetching students:', err);
-        setError('Failed to load students');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchStudents();
-  }, [selectedClass]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedClass || !lessonTitle.trim() || !date) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (students.length === 0) {
-      setError('No students found in this class');
+  const handleClassChange = async (classId: string) => {
+    setSelectedClass(classId);
+    if (!classId) {
+      setStudents([]);
       return;
     }
 
     try {
-      setSaving(true);
-      setError('');
-
-      // Check if an activity already exists for this date and class
-      const existingActivityQuery = query(
-        collection(db, 'activities'),
-        where('classId', '==', selectedClass),
-        where('date', '==', date)
+      const studentsQuery = query(
+        collection(db, 'students'),
+        where('classId', '==', classId)
       );
-      const existingActivity = await getDocs(existingActivityQuery);
+      const snapshot = await getDocs(studentsQuery);
+      const studentsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+        rollNumber: doc.data().rollNumber,
+        isPresent: true, // Default to present
+        remarks: '',
+      }));
+      // Sort by name
+      studentsData.sort((a, b) => a.name.localeCompare(b.name));
+      setStudents(studentsData);
+    } catch (err) {
+      console.error('Error fetching students:', err);
+      toast.error('Failed to load students');
+    }
+  };
 
-      if (!existingActivity.empty) {
-        setError('An activity already exists for this date and class');
-        return;
-      }
+  const handleStudentChange = (
+    studentId: string,
+    field: 'isPresent' | 'remarks',
+    value: boolean | string
+  ) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === studentId ? { ...student, [field]: value } : student
+      )
+    );
+  };
 
-      // Create the activity
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      toast.error('Please enter an activity title');
+      return;
+    }
+    if (!selectedClass) {
+      toast.error('Please select a class');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const selectedClassData = classes.find((c) => c.id === selectedClass);
+      if (!selectedClassData) throw new Error('Class not found');
+
       const activityData = {
+        title: title.trim(),
+        date: date.toISOString(),
         classId: selectedClass,
+        className: selectedClassData.name,
         teacherId: user?.uid,
-        date,
-        lessonTitle: lessonTitle.trim(),
         students: students.map((student) => ({
-          studentId: student.studentId,
+          id: student.id,
           name: student.name,
           rollNumber: student.rollNumber,
-          attendance: student.attendance,
-          classwork: student.classwork,
-          remarks: student.remarks.trim(),
+          isPresent: student.isPresent,
+          remarks: student.remarks?.trim() || null,
         })),
         createdAt: new Date().toISOString(),
       };
 
       await addDoc(collection(db, 'activities'), activityData);
-      router.push('/dashboard/activities');
+      toast.success('Activity created successfully');
+      router.push('/dashboard');
     } catch (err) {
-      console.error('Error saving activity:', err);
-      setError('Failed to save activity');
+      console.error('Error creating activity:', err);
+      toast.error('Failed to create activity');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const updateStudentActivity = (
-    studentId: string,
-    field: keyof StudentActivity,
-    value: boolean | string
-  ) => {
-    setStudents((prevStudents) =>
-      prevStudents.map((student) =>
-        student.studentId === studentId
-          ? { ...student, [field]: value }
-          : student
-      )
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Log New Activity
-          </h2>
-        </div>
-        <div className="mt-4 flex md:ml-4 md:mt-0">
-          <Link
-            href="/dashboard/activities"
-            className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {error && (
-          <div className="bg-red-50 text-red-500 p-4 rounded-md">{error}</div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="date"
-              className="block text-sm font-medium leading-6 text-gray-900"
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200">
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-slate-50"
+              onClick={() => router.back()}
             >
-              Date
-            </label>
-            <input
-              type="date"
-              id="date"
-              name="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="class"
-              className="block text-sm font-medium leading-6 text-gray-900"
-            >
-              Class
-            </label>
-            <select
-              id="class"
-              name="class"
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-              required
-            >
-              <option value="">Select a class</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="lesson-title"
-            className="block text-sm font-medium leading-6 text-gray-900"
-          >
-            Lesson Title
-          </label>
-          <input
-            type="text"
-            id="lesson-title"
-            name="lesson-title"
-            value={lessonTitle}
-            onChange={(e) => setLessonTitle(e.target.value)}
-            className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-            placeholder="Enter lesson title"
-            required
-          />
-        </div>
-
-        {selectedClass && students.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              Student Attendance & Performance
-            </h3>
-            <div className="mt-4 flow-root">
-              <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">
-                          Student Name
-                        </th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Roll Number
-                        </th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Attendance
-                        </th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Classwork
-                        </th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Remarks
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {students.map((student) => (
-                        <tr key={student.studentId}>
-                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                            {student.name}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {student.rollNumber || '-'}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <input
-                              type="checkbox"
-                              checked={student.attendance}
-                              onChange={(e) =>
-                                updateStudentActivity(
-                                  student.studentId,
-                                  'attendance',
-                                  e.target.checked
-                                )
-                              }
-                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                            />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <input
-                              type="checkbox"
-                              checked={student.classwork}
-                              onChange={(e) =>
-                                updateStudentActivity(
-                                  student.studentId,
-                                  'classwork',
-                                  e.target.checked
-                                )
-                              }
-                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                            />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <input
-                              type="text"
-                              value={student.remarks}
-                              onChange={(e) =>
-                                updateStudentActivity(
-                                  student.studentId,
-                                  'remarks',
-                                  e.target.value
-                                )
-                              }
-                              className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                              placeholder="Add remarks"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-lg font-medium text-slate-900">
+                New Activity
+              </h1>
             </div>
           </div>
-        )}
-
-        <div className="flex justify-end gap-x-3">
-          <Link
-            href="/dashboard/activities"
-            className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={saving || !selectedClass || students.length === 0}
-            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save Activity'}
-          </button>
         </div>
-      </form>
+      </header>
+
+      {/* Main Content */}
+      <div className="p-4 max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Activity Title *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Newton's First Law - Chapter 5"
+                  required
+                  className="bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Date *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal bg-white"
+                      >
+                        {format(date, 'PPP')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={(date) => date && setDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Class *</Label>
+                  <Select
+                    value={selectedClass}
+                    onValueChange={handleClassChange}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((classItem) => (
+                        <SelectItem key={classItem.id} value={classItem.id}>
+                          {classItem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {students.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Student Attendance & Remarks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {students.map((student) => (
+                    <div
+                      key={student.id}
+                      className="pb-4 border-b border-slate-200 last:border-0 last:pb-0"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`present-${student.id}`}
+                            checked={student.isPresent}
+                            onCheckedChange={(checked) =>
+                              handleStudentChange(
+                                student.id,
+                                'isPresent',
+                                checked as boolean
+                              )
+                            }
+                          />
+                          <Label
+                            htmlFor={`present-${student.id}`}
+                            className="text-base font-medium"
+                          >
+                            {student.name}
+                            {student.rollNumber && (
+                              <span className="ml-2 text-sm text-slate-500">
+                                ({student.rollNumber})
+                              </span>
+                            )}
+                          </Label>
+                        </div>
+                      </div>
+                      <div className="mt-2 pl-6">
+                        <Textarea
+                          placeholder="Add remarks (optional)"
+                          value={student.remarks}
+                          onChange={(e) =>
+                            handleStudentChange(
+                              student.id,
+                              'remarks',
+                              e.target.value
+                            )
+                          }
+                          className="resize-none bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-indigo-500 hover:bg-indigo-600"
+            >
+              {loading ? 'Creating Activity...' : 'Create Activity'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

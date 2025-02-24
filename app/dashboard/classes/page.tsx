@@ -6,6 +6,10 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
+import { useRouter } from 'next/navigation';
+import { Plus, Upload, Users, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Class {
   id: string;
@@ -19,6 +23,7 @@ export default function ClassesPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchClasses() {
@@ -57,85 +62,72 @@ export default function ClassesPage() {
   }
 
   return (
-    <div>
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Classes
-          </h2>
-        </div>
-        <div className="mt-4 flex md:ml-4 md:mt-0">
-          <Link
-            href="/dashboard/classes/new"
-            className="ml-3 inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+    <div className="min-h-screen bg-slate-50 pb-20">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-medium text-slate-900">Classes</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+            onClick={() => router.push('/dashboard/classes/upload')}
           >
-            Add Class
-          </Link>
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
         </div>
-      </div>
+      </header>
 
-      {error && (
-        <div className="mt-4 bg-red-50 text-red-500 p-4 rounded-md">
-          {error}
-        </div>
-      )}
+      {/* Class List */}
+      <div className="p-4 space-y-4">
+        {classes.map((classItem) => (
+          <Card
+            key={classItem.id}
+            className="hover:bg-slate-50 cursor-pointer border-slate-200 transition-colors"
+            onClick={() => router.push(`/dashboard/classes/${classItem.id}`)}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-900">
+                  {classItem.name}
+                </CardTitle>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center text-sm text-slate-600">
+                <Users className="mr-2 h-4 w-4" />
+                {classItem.studentCount} students
+              </div>
+            </CardContent>
+          </Card>
+        ))}
 
-      <div className="mt-6">
-        {classes.length === 0 ? (
-          <div className="text-center bg-white rounded-lg shadow-sm p-12">
-            <h3 className="mt-2 text-sm font-semibold text-gray-900">
-              No classes
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by creating a new class.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/dashboard/classes/new"
-                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              >
-                Add Class
-              </Link>
+        {classes.length === 0 && (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="h-8 w-8 text-slate-400" />
             </div>
-          </div>
-        ) : (
-          <div className="overflow-hidden bg-white shadow sm:rounded-md">
-            <ul role="list" className="divide-y divide-gray-200">
-              {classes.map((classItem) => (
-                <li key={classItem.id}>
-                  <Link
-                    href={`/dashboard/classes/${classItem.id}`}
-                    className="block hover:bg-gray-50"
-                  >
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <p className="truncate text-sm font-medium text-blue-600">
-                            {classItem.name}
-                          </p>
-                        </div>
-                        <div className="ml-2 flex flex-shrink-0">
-                          <p className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">
-                            {classItem.studentCount || 0} students
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500">
-                            Created{' '}
-                            {new Date(classItem.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <h3 className="text-sm font-medium text-slate-900 mb-1">
+              No Classes Yet
+            </h3>
+            <p className="text-sm text-slate-500">
+              Create your first class to get started
+            </p>
           </div>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <Button
+        size="lg"
+        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors"
+        onClick={() => router.push('/dashboard/classes/new')}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add Class
+      </Button>
     </div>
   );
 }

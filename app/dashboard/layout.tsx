@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
+import { Home, GraduationCap, BarChart3, User } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Classes', href: '/dashboard/classes' },
-  { name: 'Activities', href: '/dashboard/activities' },
-  { name: 'Summary', href: '/dashboard/summary' },
+  { name: 'Home', href: '/dashboard', icon: Home },
+  { name: 'Classes', href: '/dashboard/classes', icon: GraduationCap },
+  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
+  { name: 'Profile', href: '/dashboard/profile', icon: User },
 ];
 
 export default function DashboardLayout({
@@ -34,48 +35,32 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-xl font-bold text-gray-800">
-                  School Activity Tracker
-                </span>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`${
-                        isActive
-                          ? 'border-blue-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <button
-                onClick={() => logout()}
-                className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+    <div className="min-h-screen bg-slate-50 pb-16">
+      <main>{children}</main>
+
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg">
+        <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`${
+                  isActive
+                    ? 'text-indigo-500 bg-indigo-50'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                } flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-lg transition-all`}
               >
-                Sign out
-              </button>
-            </div>
-          </div>
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
-
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">{children}</main>
     </div>
   );
 }
