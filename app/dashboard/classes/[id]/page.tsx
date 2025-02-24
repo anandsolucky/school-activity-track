@@ -33,11 +33,12 @@ interface ClassDetails {
   createdAt: string;
 }
 
-export default function ClassDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function ClassDetailPage({ params }: PageProps) {
+  const classId = React.use(params).id;
   const router = useRouter();
   const { user } = useAuth();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
@@ -56,7 +57,7 @@ export default function ClassDetailPage({
 
       try {
         // Fetch class details
-        const classDoc = await getDoc(doc(db, 'classes', params.id));
+        const classDoc = await getDoc(doc(db, 'classes', classId));
         if (!classDoc.exists()) {
           setError('Class not found');
           return;
@@ -76,7 +77,7 @@ export default function ClassDetailPage({
         // Fetch students in this class
         const studentsQuery = query(
           collection(db, 'students'),
-          where('classId', '==', params.id)
+          where('classId', '==', classId)
         );
         const studentsSnapshot = await getDocs(studentsQuery);
         const studentsData = studentsSnapshot.docs.map((doc) => ({
@@ -94,7 +95,7 @@ export default function ClassDetailPage({
     }
 
     fetchClassDetails();
-  }, [params.id, user]);
+  }, [classId, user]);
 
   const handleSaveEdit = async () => {
     if (!editedName.trim()) {
@@ -103,7 +104,7 @@ export default function ClassDetailPage({
     }
 
     try {
-      await updateDoc(doc(db, 'classes', params.id), {
+      await updateDoc(doc(db, 'classes', classId), {
         name: editedName.trim(),
         description: editedDescription.trim() || null,
         updatedAt: new Date().toISOString(),
@@ -139,7 +140,7 @@ export default function ClassDetailPage({
       // Delete all students in the class
       const studentsQuery = query(
         collection(db, 'students'),
-        where('classId', '==', params.id)
+        where('classId', '==', classId)
       );
       const studentsSnapshot = await getDocs(studentsQuery);
       const deleteStudentsPromises = studentsSnapshot.docs.map((doc) =>
@@ -150,7 +151,7 @@ export default function ClassDetailPage({
       // Delete all activities for this class
       const activitiesQuery = query(
         collection(db, 'activities'),
-        where('classId', '==', params.id)
+        where('classId', '==', classId)
       );
       const activitiesSnapshot = await getDocs(activitiesQuery);
       const deleteActivitiesPromises = activitiesSnapshot.docs.map((doc) =>
@@ -159,7 +160,7 @@ export default function ClassDetailPage({
       await Promise.all(deleteActivitiesPromises);
 
       // Delete the class
-      await deleteDoc(doc(db, 'classes', params.id));
+      await deleteDoc(doc(db, 'classes', classId));
 
       router.push('/dashboard/classes');
     } catch (err) {
@@ -282,7 +283,7 @@ export default function ClassDetailPage({
                 Edit Class
               </button>
               <Link
-                href={`/dashboard/classes/${params.id}/add-students`}
+                href={`/dashboard/classes/${classId}/add-students`}
                 className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Add Students
@@ -348,7 +349,7 @@ export default function ClassDetailPage({
             </p>
             <div className="mt-6">
               <Link
-                href={`/dashboard/classes/${params.id}/add-students`}
+                href={`/dashboard/classes/${classId}/add-students`}
                 className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Add Students

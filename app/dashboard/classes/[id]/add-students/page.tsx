@@ -14,11 +14,12 @@ interface Student {
   email?: string;
 }
 
-export default function AddStudentsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function AddStudentsPage({ params }: PageProps) {
+  const classId = React.use(params).id;
   const router = useRouter();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,7 +43,7 @@ export default function AddStudentsPage({
       setError('');
 
       // Verify class exists and belongs to the teacher
-      const classDoc = await getDoc(doc(db, 'classes', params.id));
+      const classDoc = await getDoc(doc(db, 'classes', classId));
       if (!classDoc.exists() || classDoc.data()?.teacherId !== user?.uid) {
         setError('Invalid class or permission denied');
         return;
@@ -53,7 +54,7 @@ export default function AddStudentsPage({
         name: name.trim(),
         rollNumber: rollNumber.trim() || null,
         email: email.trim() || null,
-        classId: params.id,
+        classId,
         createdAt: new Date().toISOString(),
       };
 
@@ -61,7 +62,7 @@ export default function AddStudentsPage({
 
       // Update class student count
       const currentCount = classDoc.data()?.studentCount || 0;
-      await updateDoc(doc(db, 'classes', params.id), {
+      await updateDoc(doc(db, 'classes', classId), {
         studentCount: currentCount + 1,
       });
 
@@ -89,7 +90,7 @@ export default function AddStudentsPage({
       setUploadError('');
 
       // Verify class exists and belongs to the teacher
-      const classDoc = await getDoc(doc(db, 'classes', params.id));
+      const classDoc = await getDoc(doc(db, 'classes', classId));
       if (!classDoc.exists() || classDoc.data()?.teacherId !== user?.uid) {
         setUploadError('Invalid class or permission denied');
         return;
@@ -114,14 +115,14 @@ export default function AddStudentsPage({
           name: student.name.trim(),
           rollNumber: student.rollNumber?.toString().trim() || null,
           email: student.email?.trim() || null,
-          classId: params.id,
+          classId,
           createdAt: new Date().toISOString(),
         });
       }
 
       // Update class student count
       const currentCount = classDoc.data()?.studentCount || 0;
-      await updateDoc(doc(db, 'classes', params.id), {
+      await updateDoc(doc(db, 'classes', classId), {
         studentCount: currentCount + jsonData.length,
       });
 
@@ -151,7 +152,7 @@ export default function AddStudentsPage({
         </div>
         <div className="mt-4 flex md:ml-4 md:mt-0">
           <Link
-            href={`/dashboard/classes/${params.id}`}
+            href={`/dashboard/classes/${classId}`}
             className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
             Back to Class
