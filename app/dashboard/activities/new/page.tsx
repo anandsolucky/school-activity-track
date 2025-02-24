@@ -2,8 +2,25 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
+import {
+  ChevronLeft,
+  BookOpen,
+  CalendarDays,
+  GraduationCap,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -41,15 +57,33 @@ interface ActivityStudent {
   remarks?: string;
 }
 
+const formSchema = z.object({
+  title: z.string().min(2, {
+    message: 'Activity title must be at least 2 characters.',
+  }),
+  date: z.date({
+    required_error: 'Please select a date.',
+  }),
+  classId: z.string({
+    required_error: 'Please select a class.',
+  }),
+});
+
 export default function NewActivityPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
   const [students, setStudents] = useState<ActivityStudent[]>([]);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: '',
+      date: new Date(),
+      classId: '',
+    },
+  });
 
   useEffect(() => {
     async function fetchClasses() {
@@ -75,7 +109,7 @@ export default function NewActivityPage() {
   }, [user]);
 
   const handleClassChange = async (classId: string) => {
-    setSelectedClass(classId);
+    form.setValue('classId', classId);
     if (!classId) {
       setStudents([]);
       return;
@@ -91,10 +125,9 @@ export default function NewActivityPage() {
         id: doc.id,
         name: doc.data().name,
         rollNumber: doc.data().rollNumber,
-        isPresent: true, // Default to present
+        isPresent: true,
         remarks: '',
       }));
-      // Sort by name
       studentsData.sort((a, b) => a.name.localeCompare(b.name));
       setStudents(studentsData);
     } catch (err) {
@@ -115,31 +148,26 @@ export default function NewActivityPage() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) {
-      toast.error('Please enter an activity title');
-      return;
-    }
-    if (!selectedClass) {
-      toast.error('Please select a class');
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (students.length === 0) {
+      toast.error('Please select a class with students');
       return;
     }
 
     setLoading(true);
     try {
-      const selectedClassData = classes.find((c) => c.id === selectedClass);
+      const selectedClassData = classes.find((c) => c.id === values.classId);
       if (!selectedClassData) throw new Error('Class not found');
 
-      // Check if an activity already exists for this class and date
-      const startOfDay = new Date(date);
+      // Check for existing activity
+      const startOfDay = new Date(values.date);
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
+      const endOfDay = new Date(values.date);
       endOfDay.setHours(23, 59, 59, 999);
 
       const existingActivityQuery = query(
         collection(db, 'activities'),
-        where('classId', '==', selectedClass),
+        where('classId', '==', values.classId),
         where('date', '>=', startOfDay.toISOString()),
         where('date', '<=', endOfDay.toISOString())
       );
@@ -152,14 +180,13 @@ export default function NewActivityPage() {
             description: 'Please choose a different date or class',
           }
         );
-        setLoading(false);
         return;
       }
 
       const activityData = {
-        title: title.trim(),
-        date: date.toISOString(),
-        classId: selectedClass,
+        title: values.title.trim(),
+        date: values.date.toISOString(),
+        classId: values.classId,
         className: selectedClassData.name,
         teacherId: user?.uid,
         students: students.map((student) => ({
@@ -208,138 +235,182 @@ export default function NewActivityPage() {
 
       {/* Main Content */}
       <div className="p-4 max-w-3xl mx-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Activity Title *</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Newton's First Law - Chapter 5"
-                  required
-                  className="bg-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Date *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal bg-white"
-                      >
-                        {format(date, 'PPP')}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(date) => date && setDate(date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Class *</Label>
-                  <Select
-                    value={selectedClass}
-                    onValueChange={handleClassChange}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select a class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((classItem) => (
-                        <SelectItem key={classItem.id} value={classItem.id}>
-                          {classItem.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {students.length > 0 && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Student Attendance & Remarks</CardTitle>
+                <CardTitle>Activity Details</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {students.map((student) => (
-                    <div
-                      key={student.id}
-                      className="pb-4 border-b border-slate-200 last:border-0 last:pb-0"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id={`present-${student.id}`}
-                            checked={student.isPresent}
-                            onCheckedChange={(checked) =>
-                              handleStudentChange(
-                                student.id,
-                                'isPresent',
-                                checked as boolean
-                              )
-                            }
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Activity Title</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <BookOpen className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                          <Input
+                            placeholder="e.g., Newton's First Law - Chapter 5"
+                            className="pl-10 bg-white"
+                            {...field}
                           />
-                          <Label
-                            htmlFor={`present-${student.id}`}
-                            className="text-base font-medium"
-                          >
-                            {student.name}
-                            {student.rollNumber && (
-                              <span className="ml-2 text-sm text-slate-500">
-                                ({student.rollNumber})
-                              </span>
-                            )}
-                          </Label>
                         </div>
-                      </div>
-                      <div className="mt-2 pl-6">
-                        <Textarea
-                          placeholder="Add remarks (optional)"
-                          value={student.remarks}
-                          onChange={(e) =>
-                            handleStudentChange(
-                              student.id,
-                              'remarks',
-                              e.target.value
-                            )
-                          }
-                          className="resize-none bg-white"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <div className="relative">
+                                <CalendarDays className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                                <Button
+                                  variant="outline"
+                                  className="w-full pl-10 text-left font-normal bg-white"
+                                >
+                                  {field.value ? (
+                                    format(field.value, 'PPP')
+                                  ) : (
+                                    <span className="text-slate-400">
+                                      Pick a date
+                                    </span>
+                                  )}
+                                </Button>
+                              </div>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="classId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Class</FormLabel>
+                        <Select
+                          onValueChange={handleClassChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <div className="relative">
+                              <GraduationCap className="absolute left-3 top-2.5 h-5 w-5 text-slate-400 pointer-events-none" />
+                              <SelectTrigger className="pl-10 bg-white">
+                                <SelectValue placeholder="Select a class" />
+                              </SelectTrigger>
+                            </div>
+                          </FormControl>
+                          <SelectContent>
+                            {classes.map((classItem) => (
+                              <SelectItem
+                                key={classItem.id}
+                                value={classItem.id}
+                              >
+                                {classItem.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-indigo-500 hover:bg-indigo-600"
-            >
-              {loading ? 'Creating Activity...' : 'Create Activity'}
-            </Button>
-          </div>
-        </form>
+            {students.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Attendance & Remarks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {students.map((student) => (
+                      <div
+                        key={student.id}
+                        className="pb-6 border-b border-slate-200 last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`present-${student.id}`}
+                              checked={student.isPresent}
+                              onCheckedChange={(checked) =>
+                                handleStudentChange(
+                                  student.id,
+                                  'isPresent',
+                                  checked as boolean
+                                )
+                              }
+                            />
+                            <Label
+                              htmlFor={`present-${student.id}`}
+                              className="text-base font-medium"
+                            >
+                              {student.name}
+                              {student.rollNumber && (
+                                <span className="ml-2 text-sm text-slate-500">
+                                  ({student.rollNumber})
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        </div>
+                        <div className="mt-2 pl-6">
+                          <Textarea
+                            placeholder="Add remarks (optional)"
+                            value={student.remarks}
+                            onChange={(e) =>
+                              handleStudentChange(
+                                student.id,
+                                'remarks',
+                                e.target.value
+                              )
+                            }
+                            className="resize-none bg-white"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-indigo-500 hover:bg-indigo-600"
+              >
+                {loading ? 'Creating Activity...' : 'Create Activity'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </div>
     </div>
   );

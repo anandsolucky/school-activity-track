@@ -2,19 +2,30 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Save, Pencil, X, Check } from 'lucide-react';
+import { ChevronLeft, Save, Pencil, X, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface ActivityStudent {
   id: string;
@@ -43,6 +54,7 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [students, setStudents] = useState<ActivityStudent[]>([]);
@@ -118,6 +130,22 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!activity) return;
+
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'activities', activityId));
+      toast.success('Activity deleted successfully');
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Error deleting activity:', err);
+      toast.error('Failed to delete activity');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -132,9 +160,9 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
   const absentCount = students.length - presentCount;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-24">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center gap-2">
             <Button
@@ -155,41 +183,6 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
                 <span>{format(new Date(activity.date), 'PPP')}</span>
               </div>
             </div>
-            {!isEditing ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setStudents(activity.students);
-                    setIsEditing(false);
-                  }}
-                  className="text-slate-600 hover:bg-slate-50"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-indigo-500 hover:bg-indigo-600"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </header>
@@ -226,17 +219,17 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
         </Card>
 
         {/* Students List */}
-        <Card>
-          <CardHeader>
+        <Card className="flex-1 min-h-[calc(100vh-24rem)]">
+          <CardHeader className="border-b sticky top-0 bg-white z-10">
             <CardTitle>Student Attendance & Remarks</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="space-y-6">
               {students.map((student) => (
                 <div
                   key={student.id}
                   className={cn(
-                    'pb-4 border-b border-slate-200 last:border-0 last:pb-0',
+                    'pb-6 border-b border-slate-200 last:border-0 last:pb-0',
                     !isEditing &&
                       !student.isPresent &&
                       'bg-red-50/50 p-4 rounded-lg'
@@ -316,6 +309,76 @@ function ActivityDetailsContent({ activityId }: { activityId: string }) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Action Buttons */}
+        <div className="sticky bottom-20 bg-slate-50 pt-4 pb-2 -mx-4 px-4 border-t border-slate-200">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            {!isEditing && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Activity
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Activity</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this activity? This action
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={handleDelete}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            {!isEditing ? (
+              <Button
+                onClick={() => setIsEditing(true)}
+                className="bg-indigo-500 hover:bg-indigo-600 ml-auto"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Activity
+              </Button>
+            ) : (
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setStudents(activity.students);
+                    setIsEditing(false);
+                  }}
+                  className="text-slate-600 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-indigo-500 hover:bg-indigo-600"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

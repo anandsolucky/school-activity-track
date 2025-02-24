@@ -24,6 +24,10 @@ interface Activity {
   date: string;
   className: string;
   classId: string;
+  students: Array<{
+    id: string;
+    isPresent: boolean;
+  }>;
 }
 
 export default function DashboardPage() {
@@ -175,9 +179,18 @@ export default function DashboardPage() {
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-slate-600">
-                      {activity.className}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-600">
+                        {activity.className}
+                      </p>
+                      <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100">
+                        <span className="text-xs font-medium text-indigo-600">
+                          {activity.students.filter((s) => s.isPresent).length}
+                          <span className="text-indigo-300 mx-1">/</span>
+                          {activity.students.length}
+                        </span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -250,9 +263,21 @@ export default function DashboardPage() {
                       </p>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-slate-600">
-                        {activity.className}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-slate-600">
+                          {activity.className}
+                        </p>
+                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-100">
+                          <span className="text-xs font-medium text-indigo-600">
+                            {
+                              activity.students.filter((s) => s.isPresent)
+                                .length
+                            }
+                            <span className="text-indigo-300 mx-1">/</span>
+                            {activity.students.length}
+                          </span>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
