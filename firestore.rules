@@ -7,40 +7,32 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper function to check if the document belongs to the current user
-    function isOwner(teacherId) {
-      return request.auth.uid == teacherId;
-    }
-
     // Teachers collection
     match /teachers/{teacherId} {
-      allow read, write: if isAuthenticated() && isOwner(teacherId);
+      allow read, write: if isAuthenticated() && request.auth.uid == teacherId;
     }
 
-    // Classes collection - simplified rules
+    // Classes collection - very simple rules
     match /classes/{classId} {
-      allow read, write: if isAuthenticated() && (
-        resource == null || 
-        resource.data.teacherId == request.auth.uid ||
-        request.resource.data.teacherId == request.auth.uid
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.teacherId ||
+        (resource != null && request.auth.uid == resource.data.teacherId)
       );
     }
 
-    // Students collection - simplified rules
+    // Students collection - very simple rules
     match /students/{studentId} {
-      allow read, write: if isAuthenticated() && (
-        resource == null ||
-        get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == request.auth.uid ||
-        get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.teacherId == request.auth.uid
-      );
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
-    // Activities collection - simplified rules
+    // Activities collection - very simple rules
     match /activities/{activityId} {
-      allow read, write: if isAuthenticated() && (
-        resource == null ||
-        resource.data.teacherId == request.auth.uid ||
-        request.resource.data.teacherId == request.auth.uid
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.teacherId ||
+        (resource != null && request.auth.uid == resource.data.teacherId)
       );
     }
   }
