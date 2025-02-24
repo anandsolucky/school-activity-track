@@ -258,13 +258,13 @@ function ClassDetailsContent({ classId }: { classId: string }) {
                     <table className="min-w-full divide-y divide-slate-200">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/2">
                             Name
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/3">
                             Roll Number
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
+                          <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-[100px]">
                             <span className="sr-only">Actions</span>
                           </th>
                         </tr>
@@ -278,7 +278,7 @@ function ClassDetailsContent({ classId }: { classId: string }) {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                               {student.rollNumber || '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">
                               <Button
                                 variant="ghost"
                                 size="sm"

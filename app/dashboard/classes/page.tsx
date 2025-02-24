@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { useRouter } from 'next/navigation';
-import { Plus, Upload, Users, ChevronRight } from 'lucide-react';
+import { Plus, Users, ChevronRight, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -73,16 +73,10 @@ export default function ClassesPage() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-medium text-slate-900">Classes</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            onClick={() => router.push('/dashboard/classes/upload')}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-indigo-500" />
+            <h1 className="text-lg font-medium text-indigo-500">Classes</h1>
+          </div>
         </div>
       </header>
 
