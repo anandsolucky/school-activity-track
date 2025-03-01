@@ -19,6 +19,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -32,6 +35,7 @@ const formSchema = z.object({
 
 export default function NewClassPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -42,14 +46,28 @@ export default function NewClassPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      toast.error('You must be logged in to create a class');
+      return;
+    }
+
     try {
-      console.log('Creating class with values:', values);
-      // TODO: Implement class creation with Firebase
+      // Create class document in Firestore
+      await addDoc(collection(db, 'classes'), {
+        name: values.name,
+        subject: values.subject,
+        description: values.description || '',
+        teacherId: user.uid,
+        createdAt: serverTimestamp(),
+        studentCount: 0, // Initialize student count to 0
+      });
+
       toast.success('Class created successfully', {
         description: 'You can now add students to this class.',
       });
       router.push('/dashboard/classes');
-    } catch {
+    } catch (error) {
+      console.error('Error creating class:', error);
       toast.error('Error creating class', {
         description: 'Please try again.',
       });

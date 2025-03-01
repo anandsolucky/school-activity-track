@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  Timestamp,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { Spinner } from '@/components/ui/Spinner';
@@ -14,7 +20,7 @@ interface Class {
   id: string;
   name: string;
   studentCount: number;
-  createdAt: string;
+  createdAt: Timestamp | string | { seconds: number; nanoseconds: number };
 }
 
 export default function ClassesPage() {
@@ -35,11 +41,16 @@ export default function ClassesPage() {
         );
 
         const querySnapshot = await getDocs(classesQuery);
-        const fetchedClasses = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Class[];
+        const fetchedClasses = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log('Class data:', data); // Debug: log the raw data
+          return {
+            id: doc.id,
+            ...data,
+          };
+        }) as Class[];
 
+        console.log('Fetched classes:', fetchedClasses); // Debug: log all classes
         setClasses(fetchedClasses);
       } catch (err) {
         console.error('Error fetching classes:', err);
@@ -51,6 +62,60 @@ export default function ClassesPage() {
 
     fetchClasses();
   }, [user]);
+
+  // Helper function to check if an object is a Firestore Timestamp
+  const isFirestoreTimestamp = (value: unknown): value is Timestamp => {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      'toDate' in value &&
+      typeof (value as Timestamp).toDate === 'function'
+    );
+  };
+
+  // Helper function to check if an object has seconds property
+  const isTimestampLike = (
+    value: unknown
+  ): value is { seconds: number; nanoseconds: number } => {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      'seconds' in value &&
+      typeof (value as { seconds: number }).seconds === 'number'
+    );
+  };
+
+  // Helper function to format date safely
+  const formatDate = (timestamp: unknown): string => {
+    if (!timestamp) return 'Unknown date';
+
+    try {
+      // Handle Firestore Timestamp
+      if (isFirestoreTimestamp(timestamp)) {
+        return timestamp.toDate().toLocaleDateString();
+      }
+
+      // Handle timestamp object with seconds and nanoseconds
+      if (isTimestampLike(timestamp)) {
+        return new Date(timestamp.seconds * 1000).toLocaleDateString();
+      }
+
+      // Handle string date
+      if (typeof timestamp === 'string') {
+        return new Date(timestamp).toLocaleDateString();
+      }
+
+      // Handle regular Date object
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString();
+      }
+
+      return 'Invalid date';
+    } catch (error) {
+      console.error('Error formatting date:', error, timestamp);
+      return 'Invalid date';
+    }
+  };
 
   if (loading) {
     return (
@@ -103,8 +168,7 @@ export default function ClassesPage() {
                         {classItem.name}
                       </CardTitle>
                       <p className="text-sm text-slate-500 flex items-center gap-2">
-                        Created{' '}
-                        {new Date(classItem.createdAt).toLocaleDateString()}
+                        Created {formatDate(classItem.createdAt)}
                       </p>
                     </div>
                   </div>
