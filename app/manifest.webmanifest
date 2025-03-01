@@ -1,11 +1,11 @@
 {
-  "name": "School Activity Tracker",
-  "short_name": "SchoolTrack",
+  "name": "Apollo International School",
+  "short_name": "Apollo School",
   "description": "Track and manage school activities and student performance",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#00a0b7",
   "orientation": "portrait",
   "icons": [
     {

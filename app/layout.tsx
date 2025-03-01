@@ -15,18 +15,18 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'School Activity Tracker',
-  description: 'Track and manage school activities and student performance',
+  title: 'Apollo International School',
+  description: 'Apollo International School - Student Activity Tracker',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'School Activity Tracker',
+    title: 'Apollo International School',
   },
   formatDetection: {
     telephone: false,
   },
-  themeColor: '#ffffff',
+  themeColor: '#00a0b7', // Teal from Apollo logo
 };
 
 export default function RootLayout({

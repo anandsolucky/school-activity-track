@@ -1,22 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, LayoutDashboard, CalendarIcon } from 'lucide-react';
+import { Plus, Search, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Spinner } from '@/components/ui/Spinner';
 import { format } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 interface Activity {
   id: string;
@@ -30,375 +24,269 @@ interface Activity {
   }>;
 }
 
+// Academic menu items based on screenshots
+const academicItems = [
+  {
+    name: 'Attendance',
+    icon: '/images/attendance.svg',
+    href: '/dashboard/activities',
+    color: 'bg-pink-100',
+  },
+  {
+    name: 'Homework',
+    icon: '/images/homework.svg',
+    href: '/dashboard/activities',
+    color: 'bg-blue-100',
+  },
+  {
+    name: 'Remarks',
+    icon: '/images/remarks.svg',
+    href: '/dashboard/activities',
+    color: 'bg-green-100',
+  },
+  {
+    name: 'Photo Gallery',
+    icon: '/images/gallery.svg',
+    href: '/dashboard/activities',
+    color: 'bg-orange-100',
+  },
+  {
+    name: 'Class Work',
+    icon: '/images/classwork.svg',
+    href: '/dashboard/activities',
+    color: 'bg-pink-100',
+  },
+  {
+    name: 'Subjectwise H.W.',
+    icon: '/images/subject.svg',
+    href: '/dashboard/activities',
+    color: 'bg-teal-100',
+  },
+];
+
+// Download menu items
+const downloadItems = [
+  {
+    name: 'Syllabus',
+    icon: '/images/syllabus.svg',
+    href: '/dashboard/reports',
+    color: 'bg-teal-100',
+  },
+  {
+    name: 'Assignment',
+    icon: '/images/assignment.svg',
+    href: '/dashboard/reports',
+    color: 'bg-purple-100',
+  },
+  {
+    name: 'Time Table',
+    icon: '/images/timetable.svg',
+    href: '/dashboard/reports',
+    color: 'bg-pink-100',
+  },
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [todayActivities, setTodayActivities] = useState<Activity[]>([]);
-  const [pastActivities, setPastActivities] = useState<Activity[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [greeting, setGreeting] = useState('Good Morning');
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    async function fetchDashboardData() {
-      if (!user) return;
+    // Set greeting based on time of day
+    const hour = new Date().getHours();
+    if (hour >= 12 && hour < 17) {
+      setGreeting('Good Afternoon');
+    } else if (hour >= 17) {
+      setGreeting('Good Evening');
+    }
 
-      try {
-        // Get today's date range
-        const today = new Date();
-        const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-        const todayEnd = new Date(
-          today.setHours(23, 59, 59, 999)
-        ).toISOString();
-
-        // Fetch today's activities
-        const todayActivitiesQuery = query(
-          collection(db, 'activities'),
-          where('teacherId', '==', user.uid),
-          where('date', '>=', todayStart),
-          where('date', '<=', todayEnd),
-          orderBy('date', 'desc')
-        );
-        const todaySnapshot = await getDocs(todayActivitiesQuery);
-        const todayData = todaySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Activity[];
-        setTodayActivities(todayData);
-
-        // If a date is selected, fetch activities for that date
-        if (selectedDate) {
-          const selectedStart = new Date(
-            selectedDate.setHours(0, 0, 0, 0)
-          ).toISOString();
-          const selectedEnd = new Date(
-            selectedDate.setHours(23, 59, 59, 999)
-          ).toISOString();
-
-          const pastActivitiesQuery = query(
-            collection(db, 'activities'),
-            where('teacherId', '==', user.uid),
-            where('date', '>=', selectedStart),
-            where('date', '<=', selectedEnd),
-            orderBy('date', 'desc')
-          );
-          const pastSnapshot = await getDocs(pastActivitiesQuery);
-          const pastData = pastSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Activity[];
-          setPastActivities(pastData);
-        } else {
-          setPastActivities([]);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
+    // Extract first name if available
+    if (user?.displayName) {
+      const nameParts = user.displayName.split(' ');
+      setUserName(nameParts[0].toUpperCase());
     }
 
     fetchDashboardData();
-  }, [user, selectedDate]);
+  }, [user]);
+
+  async function fetchDashboardData() {
+    if (!user) return;
+
+    try {
+      // Get today's date range
+      const today = new Date();
+      const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+      const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+
+      // Fetch today's activities
+      const todayActivitiesQuery = query(
+        collection(db, 'activities'),
+        where('teacherId', '==', user.uid),
+        where('date', '>=', todayStart),
+        where('date', '<=', todayEnd),
+        orderBy('date', 'desc')
+      );
+      const todaySnapshot = await getDocs(todayActivitiesQuery);
+      const todayData = todaySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Activity[];
+      setTodayActivities(todayData);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <Spinner size="lg" />
       </div>
     );
   }
 
+  const currentDate = format(new Date(), 'dd-MMM-yyyy');
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="px-4 py-3 flex items-center gap-2">
-          <LayoutDashboard className="h-5 w-5 text-indigo-500" />
-          <h1 className="text-lg font-medium text-slate-900">Dashboard</h1>
+    <div className="container max-w-md mx-auto px-4 pb-20">
+      {/* Search Bar */}
+      <div className="mt-4 relative">
+        <div className="relative mb-6">
+          <Input
+            type="text"
+            placeholder="Search menu"
+            className="pl-10 pr-4 py-3 bg-gray-100 rounded-full shadow-sm focus-within:shadow-md transition-shadow"
+          />
+          <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
         </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="p-4">
-        <Tabs defaultValue="today" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger
-              value="today"
-              className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
-            >
-              Today&apos;s Activities
-            </TabsTrigger>
-            <TabsTrigger
-              value="past"
-              className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
-            >
-              Past Activities
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="today" className="space-y-4">
-            {todayActivities.length === 0 ? (
-              <Card className="border-slate-200">
-                <CardContent className="py-8">
-                  <div className="text-center">
-                    <h3 className="text-sm font-medium text-slate-900 mb-1">
-                      No Activities Today
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-4">
-                      Start by creating your first activity for today
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push('/dashboard/activities/new')}
-                      className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Activity
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              todayActivities.map((activity) => (
-                <Card
-                  key={activity.id}
-                  className="overflow-hidden hover:shadow-md cursor-pointer border-slate-200 transition-all duration-200 group"
-                  onClick={() =>
-                    router.push(`/dashboard/activities/${activity.id}`)
-                  }
-                >
-                  <div className="relative">
-                    {/* Activity Status Bar */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
-
-                    <CardHeader className="space-y-0 pb-2 pt-5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-indigo-50 p-2 rounded-lg">
-                            <CalendarIcon className="h-5 w-5 text-indigo-500" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {activity.title}
-                            </CardTitle>
-                            <p className="text-sm text-slate-500 flex items-center gap-2">
-                              {activity.className}
-                              <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
-                              {new Date(activity.date).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-4">
-                          {/* Present Students */}
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-green-500" />
-                            <span className="text-sm font-medium text-slate-700">
-                              {
-                                activity.students.filter((s) => s.isPresent)
-                                  .length
-                              }{' '}
-                              Present
-                            </span>
-                          </div>
-                          {/* Absent Students */}
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-red-500" />
-                            <span className="text-sm font-medium text-slate-700">
-                              {
-                                activity.students.filter((s) => !s.isPresent)
-                                  .length
-                              }{' '}
-                              Absent
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Attendance Percentage */}
-                        <div className="bg-slate-50 px-3 py-1 rounded-full">
-                          <span className="text-sm font-semibold text-slate-700">
-                            {Math.round(
-                              (activity.students.filter((s) => s.isPresent)
-                                .length /
-                                activity.students.length) *
-                                100
-                            )}
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </div>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="past" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Date</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate
-                        ? format(selectedDate, 'PPP')
-                        : 'Pick a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </CardContent>
-            </Card>
-
-            {selectedDate ? (
-              pastActivities.length === 0 ? (
-                <Card className="border-slate-200">
-                  <CardContent className="py-8">
-                    <div className="text-center">
-                      <h3 className="text-sm font-medium text-slate-900 mb-1">
-                        No Activities Found
-                      </h3>
-                      <p className="text-sm text-slate-500 mb-4">
-                        No activities were recorded on{' '}
-                        {format(selectedDate, 'PPP')}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                pastActivities.map((activity) => (
-                  <Card
-                    key={activity.id}
-                    className="overflow-hidden hover:shadow-md cursor-pointer border-slate-200 transition-all duration-200 group"
-                    onClick={() =>
-                      router.push(`/dashboard/activities/${activity.id}`)
-                    }
-                  >
-                    <div className="relative">
-                      {/* Activity Status Bar */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
-
-                      <CardHeader className="space-y-0 pb-2 pt-5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-indigo-50 p-2 rounded-lg">
-                              <CalendarIcon className="h-5 w-5 text-indigo-500" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                {activity.title}
-                              </CardTitle>
-                              <p className="text-sm text-slate-500 flex items-center gap-2">
-                                {activity.className}
-                                <span className="inline-block w-1 h-1 rounded-full bg-slate-300" />
-                                {new Date(activity.date).toLocaleTimeString(
-                                  [],
-                                  {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  }
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent>
-                        <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-4">
-                            {/* Present Students */}
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
-                              <span className="text-sm font-medium text-slate-700">
-                                {
-                                  activity.students.filter((s) => s.isPresent)
-                                    .length
-                                }{' '}
-                                Present
-                              </span>
-                            </div>
-                            {/* Absent Students */}
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-red-500" />
-                              <span className="text-sm font-medium text-slate-700">
-                                {
-                                  activity.students.filter((s) => !s.isPresent)
-                                    .length
-                                }{' '}
-                                Absent
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Attendance Percentage */}
-                          <div className="bg-slate-50 px-3 py-1 rounded-full">
-                            <span className="text-sm font-semibold text-slate-700">
-                              {Math.round(
-                                (activity.students.filter((s) => s.isPresent)
-                                  .length /
-                                  activity.students.length) *
-                                  100
-                              )}
-                              %
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </div>
-                  </Card>
-                ))
-              )
-            ) : (
-              <Card className="border-slate-200">
-                <CardContent className="py-8">
-                  <div className="text-center">
-                    <h3 className="text-sm font-medium text-slate-900 mb-1">
-                      Select a Date
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      Choose a date to view past activities
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
 
-      {/* Floating Action Button */}
-      <Button
-        size="lg"
-        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center gap-2 px-6"
-        onClick={() => router.push('/dashboard/activities/new')}
-      >
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
-          <span className="font-medium">Log Activity</span>
+      {/* Welcome Section */}
+      <div className="mb-8 px-2">
+        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-5 rounded-2xl shadow-sm">
+          <div className="flex flex-col">
+            <div className="text-sm text-gray-600 mb-1">{currentDate}</div>
+            <div className="text-xl text-primary font-medium">{greeting}</div>
+            <div className="text-2xl font-bold text-primary mb-3">
+              {userName}
+            </div>
+            <div className="mt-2 bg-white/90 py-2.5 px-4 rounded-xl text-center text-green-600 font-medium text-sm shadow-sm">
+              You are present today
+            </div>
+          </div>
         </div>
-      </Button>
-    </main>
+
+        {/* Top Picks from Academics */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
+            <span className="w-1 h-6 bg-primary rounded-full mr-2"></span>
+            Top picks from Academics
+          </h2>
+          {todayActivities.length > 0 ? (
+            <div className="bg-orange-50 p-4 rounded-xl mb-3 shadow-sm hover:shadow-md transition-all border border-orange-100">
+              <div className="text-pink-500 font-medium mb-1">
+                Today&apos;s Class work
+              </div>
+              <div className="text-gray-700">
+                {todayActivities[0].title} - {todayActivities[0].className}
+              </div>
+              <Link
+                href={`/dashboard/activities/${todayActivities[0].id}`}
+                className="flex justify-end"
+              >
+                <ChevronRight className="h-6 w-6 text-purple-500" />
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center p-5 bg-gray-50 rounded-lg text-gray-500 border border-gray-100 shadow-sm">
+              <div className="mb-2 text-gray-400">📝</div>
+              No activities for today
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Academics Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4 px-2 text-gray-800 flex items-center">
+          <span className="w-1 h-6 bg-primary rounded-full mr-2"></span>
+          Academics
+        </h2>
+        <div className="grid grid-cols-3 gap-5">
+          {academicItems.map((item) => (
+            <Link
+              href={item.href}
+              key={item.name}
+              className="flex flex-col items-center group"
+            >
+              <div
+                className={`${item.color} w-18 h-18 rounded-full flex items-center justify-center mb-2 shadow-sm group-hover:shadow-md transition-all duration-200`}
+              >
+                <img
+                  src={item.icon}
+                  alt={item.name}
+                  className="w-8 h-8 group-hover:scale-110 transition-transform duration-200"
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/placeholder.svg';
+                  }}
+                />
+              </div>
+              <span className="text-xs font-medium text-center text-gray-700 group-hover:text-primary transition-colors">
+                {item.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Downloads Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4 px-2 text-gray-800 flex items-center">
+          <span className="w-1 h-6 bg-secondary rounded-full mr-2"></span>
+          Downloads
+        </h2>
+        <div className="grid grid-cols-3 gap-5">
+          {downloadItems.map((item) => (
+            <Link
+              href={item.href}
+              key={item.name}
+              className="flex flex-col items-center group"
+            >
+              <div
+                className={`${item.color} w-18 h-18 rounded-full flex items-center justify-center mb-2 shadow-sm group-hover:shadow-md transition-all duration-200`}
+              >
+                <img
+                  src={item.icon}
+                  alt={item.name}
+                  className="w-8 h-8 group-hover:scale-110 transition-transform duration-200"
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/placeholder.svg';
+                  }}
+                />
+              </div>
+              <span className="text-xs font-medium text-center text-gray-700 group-hover:text-primary transition-colors">
+                {item.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Add Activity Button */}
+      <div className="fixed bottom-20 right-4">
+        <Button
+          onClick={() => router.push('/dashboard/activities/new')}
+          size="icon"
+          className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
+    </div>
   );
 }
