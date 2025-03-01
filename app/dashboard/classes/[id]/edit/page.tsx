@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,12 +33,6 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
 });
-
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
 
 function EditClassContent({ classId }: { classId: string }) {
   const router = useRouter();
@@ -239,6 +233,9 @@ function EditClassContent({ classId }: { classId: string }) {
   );
 }
 
-export default function EditClassPage({ params }: PageProps) {
-  return <EditClassContent classId={params.id} />;
+export default function EditClassPage() {
+  const params = useParams();
+  const id = params.id as string;
+
+  return <EditClassContent classId={id} />;
 }

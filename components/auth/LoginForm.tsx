@@ -24,7 +24,12 @@ export default function LoginForm() {
       setError('');
       setLoading(true);
       await signIn(email, password);
-      router.replace('/dashboard');
+
+      // Add a small delay to ensure the cookie is set before redirecting
+      setTimeout(() => {
+        console.log('Redirecting to dashboard after successful login');
+        router.replace('/dashboard');
+      }, 300);
     } catch (err: unknown) {
       console.error('Sign in error:', err);
       const errorMessage =
