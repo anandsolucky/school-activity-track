@@ -164,7 +164,7 @@ export default function ClassesPage() {
       {/* Floating Action Button */}
       <Button
         size="lg"
-        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all flex items-center gap-2 px-6"
+        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all flex items-center gap-2 px-6"
         onClick={() => router.push('/dashboard/classes/new')}
       >
         <div className="flex items-center gap-2">

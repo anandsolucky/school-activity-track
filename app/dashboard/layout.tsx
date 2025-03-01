@@ -76,8 +76,13 @@ export default function DashboardLayout({
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg">
         <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
           {navigation.map((item) => {
+            // Special handling for home route to prevent it being active on subpages
             const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+              item.href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
+
             const Icon = item.icon;
             return (
               <Link

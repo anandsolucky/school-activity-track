@@ -404,7 +404,7 @@ export default function NewActivityPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
               >
                 {loading ? 'Creating Activity...' : 'Create Activity'}
               </Button>
