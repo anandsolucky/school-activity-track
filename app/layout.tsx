@@ -22,6 +22,18 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Apollo International School',
+    startupImage: ['/icons/icon-512x512.png'],
+  },
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    shortcut: '/icons/icon-192x192.png',
+    apple: '/icons/icon-192x192.png',
+    other: [
+      {
+        rel: 'apple-touch-icon-precomposed',
+        url: '/icons/icon-192x192.png',
+      },
+    ],
   },
   formatDetection: {
     telephone: false,
