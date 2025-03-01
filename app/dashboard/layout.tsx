@@ -73,7 +73,7 @@ export default function DashboardLayout({
       <main>{children}</main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-10">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg">
         <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
           {navigation.map((item) => {
             const isActive =
@@ -87,23 +87,10 @@ export default function DashboardLayout({
                   isActive
                     ? 'text-primary bg-primary/10'
                     : 'text-slate-600 hover:text-primary hover:bg-slate-50'
-                } flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-lg transition-all duration-200 relative`}
+                } flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-lg transition-all`}
               >
-                {isActive && (
-                  <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
-                )}
-                <Icon
-                  className={`h-5 w-5 ${
-                    isActive ? 'text-primary' : 'text-slate-500'
-                  } transition-colors duration-200`}
-                />
-                <span
-                  className={`text-xs font-medium ${
-                    isActive ? 'text-primary' : 'text-slate-600'
-                  } transition-colors duration-200`}
-                >
-                  {item.name}
-                </span>
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.name}</span>
               </Link>
             );
           })}
