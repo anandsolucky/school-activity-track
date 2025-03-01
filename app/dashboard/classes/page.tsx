@@ -74,8 +74,8 @@ export default function ClassesPage() {
       <header className="bg-white border-b border-slate-200">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-indigo-500" />
-            <h1 className="text-lg font-medium text-indigo-500">Classes</h1>
+            <GraduationCap className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-medium text-primary">Classes</h1>
           </div>
         </div>
       </header>
@@ -90,16 +90,16 @@ export default function ClassesPage() {
           >
             <div className="relative">
               {/* Class Status Bar */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary" />
 
               <CardHeader className="space-y-0 pb-2 pt-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="bg-indigo-50 p-2 rounded-lg">
-                      <GraduationCap className="h-5 w-5 text-indigo-500" />
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                      <GraduationCap className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors">
                         {classItem.name}
                       </CardTitle>
                       <p className="text-sm text-slate-500 flex items-center gap-2">
@@ -124,7 +124,7 @@ export default function ClassesPage() {
                   </div>
 
                   {/* View Details */}
-                  <div className="flex items-center text-sm text-indigo-600 font-medium">
+                  <div className="flex items-center text-sm text-primary font-medium">
                     View Details
                     <ChevronRight className="h-4 w-4 ml-1" />
                   </div>
@@ -138,8 +138,8 @@ export default function ClassesPage() {
           <Card className="border-slate-200">
             <CardContent className="py-8">
               <div className="text-center">
-                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-indigo-500" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-sm font-medium text-slate-900 mb-1">
                   No Classes Yet
@@ -150,7 +150,7 @@ export default function ClassesPage() {
                 <Button
                   variant="outline"
                   onClick={() => router.push('/dashboard/classes/new')}
-                  className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                  className="border-primary/20 text-primary hover:bg-primary/10"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Class
@@ -164,7 +164,7 @@ export default function ClassesPage() {
       {/* Floating Action Button */}
       <Button
         size="lg"
-        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center gap-2 px-6"
+        className="fixed bottom-20 right-4 rounded-full shadow-lg bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all flex items-center gap-2 px-6"
         onClick={() => router.push('/dashboard/classes/new')}
       >
         <div className="flex items-center gap-2">

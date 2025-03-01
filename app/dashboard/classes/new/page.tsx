@@ -143,7 +143,7 @@ export default function NewClassPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-indigo-500 hover:bg-indigo-600"
+                  className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
                   disabled={form.formState.isSubmitting}
                 >
                   {form.formState.isSubmitting ? 'Creating...' : 'Create Class'}
